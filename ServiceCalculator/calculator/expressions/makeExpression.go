@@ -1,6 +1,8 @@
 package expressions
 
 import (
+	"log"
+	"reflect"
 	"strconv"
 )
 
@@ -65,17 +67,47 @@ func GenerateGroups(dataType int, data []int, x []string) Group {
 	return expression
 }
 
-// deMorganRuleChangeInside this function can convert expression to OrAndNo, AndNoOr, AndOrNo
-func deMorganRuleChangeInside(e Group) Group {
-	e = *e.DeMorganChange().ToGroup()
+// DeMorganRuleChangeInside this function can convert expression to OrAndNo, AndNoOr, AndOrNo
+func DeMorganRuleChangeInside(e Group) Group {
 	for i, j := range e.Data {
-		e.Data[i] = j.DeMorganChange()
+		if reflect.TypeOf(j) == reflect.TypeOf(NewGroup(false)) {
+			e.Data[i] = DeMorganRuleChangeOutside(*j.ToGroup())
+		}
 	}
 	return e
 }
 
-// deMorganRuleChangeInside this function can convert expression to AndNo, OrNoAnd, OrNo, AndNoAnd
-func deMorganRuleChangeOutside(e Group) Group {
+// GroupExp method to make groups depends at
+func GroupExp(g Group, data LogicalTableData) Group {
+	if len(data.Elements) == 0 {
+		return g
+	}
+	group := NewGroup(false)
+	for i, _ := range g.Data {
+		if reflect.TypeOf(g.Data[i]) == reflect.TypeOf(group) {
+			g.Data[i] = GroupExp(*g.Data[i].ToGroup(), data)
+		}
+	}
+	i := data.Elements[0]
+	n := NewGroup(false)
+	log.Println((i + i - 1), len(g.Data))
+	if len(g.Data) > (i + i - 1) {
+		group.Data = g.Data[i+i-1 : len(g.Data)]
+		n.Data = g.Data[0:(i + i - 1)]
+		g.Data = []Elements{}
+		g.Data = append(g.Data, n)
+		log.Println(g.Data)
+		g.Data = append(g.Data, group.Data...)
+	}
+	if len(g.Data) > (i + i - 1) {
+		return GroupExp(g, data)
+	}
+
+	return g
+}
+
+// DeMorganRuleChangeOutside this function can convert expression to AndNo, OrNoAnd, OrNo, AndNoAnd
+func DeMorganRuleChangeOutside(e Group) Group {
 	e = *e.DeMorganChange().ToGroup()
 	for i, j := range e.Data {
 		e.Data[i] = j.DeMorganChange()
@@ -85,11 +117,16 @@ func deMorganRuleChangeOutside(e Group) Group {
 
 func MakeExpression(testData LogicalTableData) Expression {
 	if testData.LogicType == OrAndNo {
-		return NewExpression(GenerateGroups(testData.Type, testData.Data, testData.X), testData.Y)
-	} else if testData.LogicType == AndNo {
-		return NewExpression(deMorganRuleChangeOutside(GenerateGroups(testData.Type, testData.Data, testData.X)), testData.Y)
-	} else if testData.LogicType == OrNo {
-		return NewExpression(deMorganRuleChangeOutside(GenerateGroups(testData.Type, testData.Data, testData.X)), testData.Y)
+		e := GenerateGroups(testData.Type, testData.Data, testData.X)
+		return NewExpression(GroupExp(e, testData), testData.Y)
+	} else if testData.LogicType == AndNo || testData.LogicType == OrNo {
+		return NewExpression(DeMorganRuleChangeOutside(GenerateGroups(testData.Type, testData.Data, testData.X)), testData.Y)
+	} else if testData.LogicType == AndNoOr || testData.LogicType == AndOrNo {
+		exp := DeMorganRuleChangeOutside(GenerateGroups(testData.Type, testData.Data, testData.X))
+		return NewExpression(DeMorganRuleChangeInside(exp), testData.Y)
+	} else if testData.LogicType == OrNoOr || testData.LogicType == AndNoAnd {
+		exp := DeMorganRuleChangeInside(DeMorganRuleChangeOutside(GenerateGroups(testData.Type, testData.Data, testData.X)))
+		return NewExpression(DeMorganRuleChangeOutside(exp), testData.Y)
 	} else {
 		return NewExpression(GenerateGroups(testData.Type, testData.Data, testData.X), testData.Y)
 	}

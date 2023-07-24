@@ -14,7 +14,7 @@ type LogicalTableData struct {
 	Y         string   `json:"y"`
 	X         []string `json:"x"`
 	Data      []int    `json:"data"`
-	Elements  [2]int   `json:"elements"`
+	Elements  []int    `json:"elements"`
 	LogicType int      `json:"logicType"`
 	Type      int      `json:"type"`
 }

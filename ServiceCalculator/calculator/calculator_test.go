@@ -98,19 +98,56 @@ func TestIntToBin(t *testing.T) {
 
 func TestMakeExpression(t *testing.T) {
 	var data = []int{1, 0, 0, 1, 0, 1, 0, 1}
-	var elements = [2]int{3, 2}
+	var elements = []int{10}
 	var xData = []string{"X1", "X2", "X3"}
 	var yData = "Y1"
 	var testData1 = []exp.LogicalTableData{
 		{Y: yData, X: xData, Data: data, LogicType: exp.OrAndNo, Elements: elements, Type: exp.DNF},
 		{Y: yData, X: xData, Data: data, LogicType: exp.OrAndNo, Elements: elements, Type: exp.CNF},
 		{Y: yData, X: xData, Data: data, LogicType: exp.AndNo, Elements: elements, Type: exp.DNF},
-		{Y: yData, X: xData, Data: data, LogicType: exp.OrNo, Elements: elements, Type: exp.CNF}}
-	var testRes = []exp.Expression{TestDNFStepOrAndNo, TestCNFStepOrAndNo, TestDNFStepOrNo, TestCNFStepAndNo}
+		{Y: yData, X: xData, Data: data, LogicType: exp.OrNo, Elements: elements, Type: exp.CNF},
+		{Y: yData, X: xData, Data: data, LogicType: exp.AndNoOr, Elements: elements, Type: exp.DNF},
+		{Y: yData, X: xData, Data: data, LogicType: exp.AndOrNo, Elements: elements, Type: exp.CNF},
+		{Y: yData, X: xData, Data: data, LogicType: exp.OrNoOr, Elements: elements, Type: exp.DNF},
+		{Y: yData, X: xData, Data: data, LogicType: exp.AndNoAnd, Elements: elements, Type: exp.CNF},
+	}
+	var testRes = []exp.Expression{TestDNFStepOrAndNo, TestCNFStepOrAndNo, TestDNFStepOrNo, TestCNFStepAndNo, TestDNFStepAndOrNo, TestCNFStepAndNoOr, TestDNFStepOrNoOr, TestCNFStepAndNoAnd}
 	for i := 0; i < len(testData1); i++ {
 		result := exp.MakeExpression(testData1[i])
 		if !testRes[i].CompareExpressions(result) {
-			t.Error("Error !")
+			t.Error("Error in test #", i+1)
+			t.Error("Expected:", testRes[i])
+			t.Error("Received:", result)
+		}
+	}
+}
+
+func TestRuleDeMorgan(t *testing.T) {
+	var data = []int{1, 0, 0, 1, 0, 1, 0, 1}
+	var elements = []int{3, 2}
+	var xData = []string{"X1", "X2", "X3"}
+	var yData = "Y1"
+	testData := exp.LogicalTableData{Y: yData, X: xData, Data: data, LogicType: exp.OrAndNo, Elements: elements, Type: exp.DNF}
+	c := exp.MakeExpression(testData).Data
+	c2 := exp.DeMorganRuleChangeInside(exp.DeMorganRuleChangeOutside(exp.DeMorganRuleChangeInside(exp.DeMorganRuleChangeOutside(*c.ToGroup()))))
+	if !c.IsTheSame(c2) {
+		t.Error("Not works")
+	}
+}
+
+func TestGrouping(t *testing.T) {
+	var data = []int{1, 0, 0, 1, 0, 1, 0, 1}
+	var elements = []int{2}
+	var xData = []string{"X1", "X2", "X3"}
+	var yData = "Y1"
+	var testData1 = []exp.LogicalTableData{
+		{Y: yData, X: xData, Data: data, LogicType: exp.OrAndNo, Elements: elements, Type: exp.DNF},
+	}
+	var testRes = []exp.Expression{TestGroup}
+	for i := 0; i < len(testData1); i++ {
+		result := exp.MakeExpression(testData1[i])
+		if !testRes[i].CompareExpressions(result) {
+			t.Error("Error in test #", i+1)
 			t.Error("Expected:", testRes[i])
 			t.Error("Received:", result)
 		}

@@ -15,7 +15,7 @@ const (
 )
 
 // Variables which used to choose elements type
-// AndNo AndNoOr OrNoAnd, these are DNF forms.
+// AndNo AndNoOr OrNoOr, these are DNF forms.
 // OrNo AndOrNo AndNoAnd, these are CNF forms.
 const (
 	// OrAndNo This form can be used for CNF and DNF, it's a basic form without transformations.
@@ -23,7 +23,7 @@ const (
 
 	AndNo   = 1
 	AndNoOr = 2
-	OrNoAnd = 3
+	OrNoOr  = 3
 
 	OrNo     = 4
 	AndOrNo  = 5
