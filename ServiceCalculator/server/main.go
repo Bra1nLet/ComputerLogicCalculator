@@ -2,6 +2,7 @@ package main
 
 import (
 	exp "MicroservicesPet/ServiceCalculator/calculator/expressions"
+	"MicroservicesPet/ServiceCalculator/calculator/schema"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"log"
@@ -21,109 +22,75 @@ func handleArticles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	_, err = w.Write(js)
+	if err != nil {
+		log.Fatalf("Error " + r.Method)
+	}
+}
+
+func handleSchema(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	log.Println("Request from user")
+	js, err := json.Marshal(schema.TestSchema) // exp.MakeSchema(testDataSchema)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(js)
+	if err != nil {
+		log.Fatalf("Error " + r.Method)
+	}
+}
+
+func handleInput(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	log.Println("Request from user with input")
+	data := exp.LogicalTableData{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	js, err := json.Marshal(exp.MakeExpression(data)) // exp.MakeSchema(testDataSchema)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(js)
+	if err != nil {
+		log.Fatalf("Error")
+	}
 }
 
 var data = []int{1, 0, 0, 1, 0, 1, 0, 1}
-var elements = []int{9}
+var elements = exp.LimitElements{
+	Or:    0,
+	OrNo:  0,
+	And:   0,
+	AndNo: 0,
+}
 var lt = exp.OrAndNo
 var xData = []string{"X1", "X2", "X3"}
 var yData = "Y1"
-var testData = exp.LogicalTableData{Y: yData, X: xData, Data: data, LogicType: lt, Elements: elements, Type: exp.DNF}
+var testData = exp.LogicalTableData{Y: yData, X: xData, Data: data, LogicType: lt, Limits: elements, Type: exp.DNF}
 
 func main() {
 	route := mux.NewRouter()
 	route.HandleFunc("/data", handleArticles)
+	route.HandleFunc("/schema", handleSchema)
+	route.HandleFunc("/input", handleInput)
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(exp.MakeExpression(testData))
-		w.Write(data)
+		_, err := w.Write(data)
+		if err != nil {
+			log.Fatalf("Error")
+		}
 	}).Methods(http.MethodGet)
 
 	s := http.Server{
 		Addr:    ":8080",
 		Handler: route,
 	}
-	s.ListenAndServe()
-}
-
-var TestGroup = exp.Expression{
-	Data: exp.Group{
-		Data: []exp.Elements{
-			exp.Group{
-				Data: []exp.Elements{
-					exp.Group{
-						Data: []exp.Elements{
-							exp.Group{
-								Data: []exp.Elements{
-									exp.Element{Data: "X1", IsNegative: true},
-									exp.Operation{Data: exp.And},
-									exp.Element{Data: "X2", IsNegative: true},
-								},
-								IsNegative: false,
-							},
-							exp.Operation{Data: exp.And},
-							exp.Element{Data: "X3", IsNegative: true},
-						},
-						IsNegative: false,
-					},
-					exp.Operation{Data: exp.Or},
-					exp.Group{
-						Data: []exp.Elements{
-							exp.Group{
-								Data: []exp.Elements{
-									exp.Element{Data: "X1", IsNegative: true},
-									exp.Operation{Data: exp.And},
-									exp.Element{Data: "X2", IsNegative: false},
-								},
-								IsNegative: false,
-							},
-							exp.Operation{Data: exp.And},
-							exp.Element{Data: "X3", IsNegative: false},
-						},
-						IsNegative: false,
-					},
-				},
-				IsNegative: false,
-			},
-			exp.Operation{Data: exp.Or},
-			exp.Group{
-				Data: []exp.Elements{
-					exp.Group{
-						Data: []exp.Elements{
-							exp.Group{
-								Data: []exp.Elements{
-									exp.Element{Data: "X1", IsNegative: false},
-									exp.Operation{Data: exp.And},
-									exp.Element{Data: "X2", IsNegative: true},
-								},
-								IsNegative: false,
-							},
-							exp.Operation{Data: exp.And},
-							exp.Element{Data: "X3", IsNegative: false},
-						},
-						IsNegative: false,
-					},
-					exp.Operation{Data: exp.Or},
-					exp.Group{
-						Data: []exp.Elements{
-							exp.Group{
-								Data: []exp.Elements{
-									exp.Element{Data: "X1", IsNegative: false},
-									exp.Operation{Data: exp.And},
-									exp.Element{Data: "X2", IsNegative: false},
-								},
-								IsNegative: false,
-							},
-							exp.Operation{Data: exp.And},
-							exp.Element{Data: "X3", IsNegative: false},
-						},
-						IsNegative: false,
-					},
-				},
-				IsNegative: false,
-			},
-		},
-		IsNegative: false,
-	},
-	Value: "Y1",
+	err := s.ListenAndServe()
+	if err != nil {
+		return
+	}
 }

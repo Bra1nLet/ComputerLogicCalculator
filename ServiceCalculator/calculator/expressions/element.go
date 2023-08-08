@@ -26,10 +26,10 @@ func (e Element) GetData() any {
 	return e.Data
 }
 
-func (e Element) IsTheSame(element Elements) bool {
-	return CompareElements(e, element)
+func (e Element) ToGroup() *Group {
+	return nil
 }
 
-func (e Element) ToGroup() *Group {
+func (e Element) ToOperation() *Operation {
 	return nil
 }

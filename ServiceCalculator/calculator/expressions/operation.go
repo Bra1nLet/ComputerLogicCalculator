@@ -9,9 +9,10 @@ func NewOperation(data int) Operation {
 }
 
 func (o Operation) DeMorganChange() Elements {
-	if o.Data == And {
+	switch o.Data {
+	case And:
 		o.Data = Or
-	} else if o.Data == Or {
+	case Or:
 		o.Data = And
 	}
 	return o
@@ -29,10 +30,10 @@ func (o Operation) GetData() any {
 	return o.Data
 }
 
-func (o Operation) IsTheSame(operation Elements) bool {
-	return CompareElements(o, operation)
-}
-
 func (o Operation) ToGroup() *Group {
 	return nil
+}
+
+func (o Operation) ToOperation() *Operation {
+	return &o
 }

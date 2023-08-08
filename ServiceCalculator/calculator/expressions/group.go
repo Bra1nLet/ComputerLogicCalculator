@@ -1,13 +1,36 @@
 package expressions
 
+import (
+	"errors"
+	"reflect"
+)
+
 // Group struct is used to group element
 type Group struct {
 	Data       []Elements `json:"group"`
 	IsNegative bool       `json:"negative"`
 }
 
+func (g Group) GroupType() (any, error) {
+	for _, i := range g.Data {
+		if reflect.TypeOf(i.GetData()) == reflect.TypeOf(NewOperation(And)) {
+			return i.GetData(), nil
+		}
+	}
+	return nil, errors.New("invalid group")
+}
+
 func NewGroup(isNegative bool) Group {
 	return Group{Data: []Elements{}, IsNegative: isNegative}
+}
+
+func (g Group) DetermineOperation() Elements {
+	for i, e := range g.Data {
+		if e.ToOperation() != nil {
+			return g.Data[i]
+		}
+	}
+	return nil
 }
 
 func (g Group) DeMorganChange() Elements {
@@ -31,10 +54,10 @@ func (g Group) GetData() any {
 	return g.Data
 }
 
-func (g Group) IsTheSame(group Elements) bool {
-	return CompareElements(g, group)
-}
-
 func (g Group) ToGroup() *Group {
 	return &g
+}
+
+func (g Group) ToOperation() *Operation {
+	return nil
 }
